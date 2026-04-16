@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz – Le Rappel Actif</title>
+<style>
+  :root {
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --blue-mid: #378ADD;
+    --blue-dark: #0C447C;
+    --blue-deep: #042C53;
+    --teal: #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-dark: #0F6E56;
+    --amber: #EF9F27;
+    --amber-light: #FAEEDA;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --gray-100: #F5F5F3;
+    --gray-200: #E8E8E5;
+    --text: #1a1a18;
+    --text-muted: #666663;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #EEF2F8;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .app { flex: 1; max-width: 720px; margin: 0 auto; padding: 20px 16px 80px; width: 100%; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .home-hero {
+    background: var(--blue);
+    border-radius: var(--radius);
+    padding: 36px 28px 28px;
+    color: var(--blue-light);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::before {
+    content: '↺';
+    position: absolute; right: 18px; top: 8px;
+    font-size: 100px; opacity: 0.1; color: white;
+  }
+  .home-hero-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #85B7EB; margin-bottom: 10px; }
+  .home-hero h1 { font-size: 23px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; color: #fff; }
+  .home-hero p { font-size: 14px; line-height: 1.6; color: #85B7EB; }
+
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .level-card { background: white; border-radius: var(--radius-sm); padding: 14px 12px; border: 1px solid var(--gray-200); text-align: center; position: relative; }
+  .level-card .lc-icon { font-size: 22px; margin-bottom: 6px; }
+  .level-card .lc-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .level-card .lc-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .level-card.locked { opacity: 0.5; }
+  .level-card.unlocked .lc-name { color: var(--blue-dark); }
+  .level-card.completed { border-color: var(--blue); background: var(--blue-light); }
+  .level-card .lc-check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; background: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
+
+  .btn { display: block; width: 100%; padding: 14px 20px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; transition: transform 0.1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--gray-200); }
+  .btn-secondary:hover { background: var(--gray-100); }
+  .btn-danger { background: white; color: var(--red); border: 1px solid #F09595; }
+  .btn-danger:hover { background: var(--red-light); }
+
+  .info-box { background: white; border-radius: var(--radius-sm); padding: 14px 16px; border: 1px solid var(--gray-200); font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+  .info-box strong { color: var(--text); }
+
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 12px 16px; background: white; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); }
+  .quiz-level-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
+  .tag-decouvre { background: var(--teal-light); color: var(--teal-dark); }
+  .tag-alaise { background: var(--blue-light); color: var(--blue-dark); }
+  .tag-expert { background: var(--amber-light); color: #633806; }
+  .quiz-progress-text { font-size: 13px; font-weight: 600; color: var(--text); }
+  .quiz-score-mini { font-size: 12px; color: var(--text-muted); }
+
+  .progress-bar { height: 5px; background: var(--gray-200); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 3px; transition: width 0.3s; }
+
+  .question-card { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); padding: 22px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .question-num { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 10px; }
+  .question-text { font-size: 16px; font-weight: 500; line-height: 1.55; color: var(--text); }
+
+  .answers-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .answer-btn { width: 100%; padding: 13px 16px; background: white; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; text-align: left; cursor: pointer; color: var(--text); line-height: 1.4; transition: border-color 0.15s, background 0.15s; display: flex; gap: 10px; align-items: flex-start; }
+  .answer-btn:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-light); }
+  .answer-btn .ans-letter { min-width: 24px; height: 24px; border-radius: 50%; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+  .answer-btn.correct { border-color: var(--teal); background: var(--teal-light); }
+  .answer-btn.correct .ans-letter { background: var(--teal); color: white; }
+  .answer-btn.wrong { border-color: var(--red); background: var(--red-light); }
+  .answer-btn.wrong .ans-letter { background: var(--red); color: white; }
+  .answer-btn.dimmed { opacity: 0.42; }
+  .answer-btn:disabled { cursor: not-allowed; }
+
+  .feedback-box { border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 14px; display: none; }
+  .feedback-box.correct { background: var(--teal-light); border: 1px solid #5DCAA5; color: #085041; }
+  .feedback-box.wrong { background: var(--red-light); border: 1px solid #F09595; color: #A32D2D; }
+  .feedback-box .fb-verdict { font-weight: 700; margin-bottom: 4px; font-size: 14px; }
+
+  .result-hero { border-radius: var(--radius); padding: 28px 22px; text-align: center; margin-bottom: 16px; }
+  .result-hero.pass { background: var(--blue); color: white; }
+  .result-hero.fail { background: #F5F5F3; border: 1px solid var(--gray-200); }
+  .result-score { font-size: 56px; font-weight: 700; line-height: 1; margin: 8px 0 4px; }
+  .result-hero.pass .result-score { color: white; }
+  .result-hero.fail .result-score { color: var(--text); }
+  .result-label { font-size: 14px; opacity: 0.8; }
+  .result-verdict { font-size: 18px; font-weight: 600; margin-top: 10px; }
+
+  .errors-section { margin-bottom: 16px; }
+  .errors-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; }
+  .error-item { background: white; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); border-left: 3px solid var(--red); padding: 14px 16px; margin-bottom: 10px; font-size: 13px; line-height: 1.6; }
+  .error-q { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .error-yours { color: var(--red); margin-bottom: 3px; }
+  .error-correct { color: var(--teal-dark); font-weight: 600; margin-bottom: 4px; }
+  .error-explain { color: var(--text-muted); font-style: italic; }
+
+  .badge-screen { text-align: center; padding: 30px 20px; }
+  .badge-icon { width: 120px; height: 120px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 52px; margin: 0 auto 20px; box-shadow: 0 0 0 8px var(--blue-light), 0 0 0 16px #ccddf5; }
+  .badge-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .badge-msg { font-size: 15px; color: var(--text-muted); line-height: 1.6; max-width: 480px; margin: 0 auto 24px; }
+  .badge-msg strong { color: var(--blue-dark); }
+  .stars { font-size: 28px; margin-bottom: 16px; letter-spacing: 4px; }
+  .badge-level-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+  .badge-level-tags span { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .badge-buttons { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
+
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(238,242,248,0.95); backdrop-filter: blur(6px); text-align: center; padding: 10px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--gray-200); z-index: 10; }
+  footer span { color: var(--blue-dark); font-weight: 600; }
+
+  @media (max-width: 480px) {
+    .levels-grid { grid-template-columns: 1fr; }
+    .home-hero h1 { font-size: 20px; }
+    .question-text { font-size: 15px; }
+    .result-score { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="screen-home" class="screen active">
+  <div class="app">
+    <div class="home-hero">
+      <div class="home-hero-tag">Neuroéducation · Quiz formatif</div>
+      <h1>Le Rappel Actif</h1>
+      <p>Maîtrisez la stratégie la plus puissante pour consolider durablement les apprentissages — et comprendre pourquoi elle fonctionne.</p>
+    </div>
+    <div class="info-box">
+      <strong>Comment ça marche ?</strong> 10 questions aléatoires par niveau · Score minimum <strong>80%</strong> pour passer au suivant · Correction formative détaillée · Badge final après les 3 niveaux.
+    </div>
+    <div class="levels-grid" id="levels-grid"></div>
+    <button class="btn btn-primary" id="btn-start" onclick="startCurrentLevel()">Commencer →</button>
+  </div>
+</div>
+
+<div id="screen-quiz" class="screen">
+  <div class="app">
+    <div class="quiz-header">
+      <span class="quiz-level-tag" id="quiz-level-tag">Je découvre</span>
+      <span class="quiz-progress-text" id="quiz-progress">Q 1/10</span>
+      <span class="quiz-score-mini" id="quiz-score-mini">Score : 0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="question-card">
+      <div class="question-num" id="q-num">Question 1</div>
+      <div class="question-text" id="q-text"></div>
+    </div>
+    <div class="answers-list" id="answers-list"></div>
+    <div class="feedback-box" id="feedback-box">
+      <div class="fb-verdict" id="fb-verdict"></div>
+      <div id="fb-explain"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next" style="display:none" onclick="nextQuestion()">Question suivante →</button>
+  </div>
+</div>
+
+<div id="screen-results" class="screen">
+  <div class="app">
+    <div class="result-hero" id="result-hero">
+      <div id="result-emoji" style="font-size:36px; margin-bottom:6px;"></div>
+      <div class="result-score" id="result-score"></div>
+      <div class="result-label">de réussite</div>
+      <div id="result-prog-bar" style="margin:12px 0 6px; height:8px; background:rgba(255,255,255,0.25); border-radius:4px; overflow:hidden;">
+        <div id="result-prog-fill" style="height:100%; border-radius:4px; transition:width 0.6s ease; background:rgba(255,255,255,0.85); width:0%;"></div>
+      </div>
+      <div class="result-verdict" id="result-verdict"></div>
+    </div>
+    <div class="errors-section" id="errors-section" style="display:none">
+      <div class="errors-title">📋 Révision des erreurs</div>
+      <div id="errors-list"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next-level" onclick="nextLevelOrBadge()" style="margin-bottom:10px"></button>
+    <button class="btn btn-secondary" onclick="retryLevel()">↺ Réessayer ce niveau</button>
+  </div>
+</div>
+
+<div id="screen-badge" class="screen">
+  <div class="app">
+    <div class="badge-screen">
+      <div class="badge-icon">⚡</div>
+      <div class="stars">★ ★ ★</div>
+      <div class="badge-title">Expertise atteinte !</div>
+      <div class="badge-level-tags">
+        <span style="background:var(--teal-light);color:var(--teal-dark);">✓ Je découvre</span>
+        <span style="background:var(--blue-light);color:var(--blue-dark);">✓ Je suis à l'aise</span>
+        <span style="background:var(--amber-light);color:#633806;">✓ J'approche de l'expertise</span>
+      </div>
+      <div class="badge-msg">
+        Bravo, te voilà riche de nouvelles connaissances sur : <strong>Le Rappel Actif</strong>.<br><br>
+        Tu maîtrises maintenant l'effet test, le cerveau prédictif, les mécanismes synaptiques du rappel, et les stratégies pour l'intégrer efficacement en classe. <em>Retrieved. Stored. Forever. 🧠</em>
+      </div>
+      <div class="badge-buttons">
+        <button class="btn btn-primary" onclick="resetAll()">↺ Recommencer depuis le début</button>
+        <button class="btn btn-danger" onclick="confirmReset()">🗑 Réinitialiser et effacer tous les scores</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Propulsé par <span>Elie Biro</span></footer>
+
+<script>
+const QUESTIONS = {
+
+  decouvre: [
+    {
+      q: "Qu'est-ce que le rappel actif ?",
+      a: ["Récupérer activement une information depuis sa mémoire sans la lire","Relire ses notes attentivement plusieurs fois de suite","Écouter une leçon en étant très concentré et attentif","Surligner les passages importants d'un texte ou manuel"],
+      correct: 0,
+      explain: "Le rappel actif consiste à aller chercher une information dans sa mémoire sans support — en se posant des questions, en récitant, ou en se testant. C'est le contraire de la relecture passive."
+    },
+    {
+      q: "Quel autre nom scientifique désigne le rappel actif ?",
+      a: ["L'effet test ou testing effect","L'effet de primauté","L'effet de récence","L'effet de contexte dépendant"],
+      correct: 0,
+      explain: "Le rappel actif est étudié en psychologie cognitive sous le nom d''effet test' ou 'testing effect' : passer un test sur une information consolide beaucoup mieux sa mémorisation que de la relire passivement."
+    },
+    {
+      q: "Pourquoi le rappel actif est-il plus efficace que la relecture ?",
+      a: ["Il force une récupération en mémoire qui consolide les traces neuronales","Il prend moins de temps et d'énergie qu'une lecture attentive","Il est plus motivant et agréable que relire ses notes","Il permet de détecter les erreurs dans ses notes de cours"],
+      correct: 0,
+      explain: "La relecture est passive et crée une illusion de maîtrise. Le rappel actif force le cerveau à récupérer l'information depuis la mémoire — un effort qui renforce les connexions synaptiques bien plus efficacement."
+    },
+    {
+      q: "Qu'est-ce que l'illusion de maîtrise liée à la relecture ?",
+      a: ["Croire qu'on sait parce qu'on reconnaît facilement le contenu relu","Penser qu'on a lu trop vite pour vraiment retenir","Croire qu'on a mal compris car on ne se souvient plus","Se sentir surchargé après une longue session de révision"],
+      correct: 0,
+      explain: "Relire crée une familiarité (reconnaissance) qui donne l'impression de maîtriser. Mais reconnaître n'est pas rappeler : à l'examen, sans support, l'information n'est plus récupérable. C'est l'illusion de maîtrise."
+    },
+    {
+      q: "Quelle différence y a-t-il entre reconnaître et rappeler une information ?",
+      a: ["Reconnaître valide l'info vue ; rappeler la reconstruit sans aucun indice","Ce sont deux processus identiques dans leur fonctionnement","Rappeler est plus facile que reconnaître une information","Reconnaître exige plus d'effort cognitif que rappeler"],
+      correct: 0,
+      explain: "La reconnaissance (QCM, vrai/faux) est facilitée par la présence de l'information. Le rappel libre exige de récupérer sans indice externe — c'est un effort plus exigeant mais bien plus bénéfique pour la mémorisation à long terme."
+    },
+    {
+      q: "Quels sont des exemples concrets de rappel actif ?",
+      a: ["Se tester avec des flashcards, réciter sans regarder, faire des quiz","Surligner le texte, écrire des résumés en copiant ses notes","Lire à voix haute ou écouter un enregistrement du cours","Refaire les exercices après avoir regardé la correction"],
+      correct: 0,
+      explain: "Le rappel actif inclut : flashcards, auto-interrogation, quiz, récitation sans support, brain dump (tout écrire de mémoire). Ce qui est commun : récupérer l'information sans l'avoir devant soi."
+    },
+    {
+      q: "Comment le cerveau réagit-il quand il essaie de rappeler une information ?",
+      a: ["Il génère une prédiction et compare avec la réponse reçue ensuite","Il copie passivement l'information dans une zone de stockage","Il efface les anciennes versions pour stocker la nouvelle","Il réduit son activité pour préserver l'énergie disponible"],
+      correct: 0,
+      explain: "Le cerveau est un organe prédictif : quand on cherche une réponse, il génère une prédiction (hypothèse). La confrontation avec la bonne réponse crée un signal d'erreur ou de confirmation qui renforce l'encodage."
+    },
+    {
+      q: "Que se passe-t-il neurologiquement lors d'un rappel actif ?",
+      a: ["Les connexions synaptiques du réseau mémoriel sont réactivées et renforcées","De nouveaux neurones sont créés dans toutes les zones du cerveau","L'information se déplace de la mémoire de travail vers le cortex","Les neurones non utilisés sont élagués pendant la récupération"],
+      correct: 0,
+      explain: "Lors d'un rappel, le circuit neuronal associé à l'information est réactivé — renforçant les connexions synaptiques selon la règle de Hebb ('les neurones qui s'activent ensemble se connectent'). C'est la base neurologique du rappel actif."
+    },
+    {
+      q: "Que dit la règle de Hebb sur l'apprentissage ?",
+      a: ["Les neurones qui s'activent ensemble se connectent et se renforcent","Plus on a de neurones, plus on mémorise facilement","Les neurones créés à l'enfance disparaissent à l'âge adulte","Les connexions neuronales sont fixes après l'adolescence"],
+      correct: 0,
+      explain: "La règle de Hebb ('fire together, wire together') stipule que deux neurones qui s'activent simultanément renforcent leur connexion synaptique. Le rappel actif réactive ensemble les mêmes réseaux, renforçant leur connexion à chaque fois."
+    },
+    {
+      q: "Qu'est-ce que le rappel actif améliore au-delà de la simple mémorisation ?",
+      a: ["La rétention à long terme ET le transfert vers de nouveaux contextes","Uniquement la mémorisation verbale et les listes de mots","La vitesse d'apprentissage mais pas la durée de rétention","Seulement la performance aux tests de type QCM standardisés"],
+      correct: 0,
+      explain: "L'effet test produit un double bénéfice démontré : il améliore la rétention différée (mémoire longue) ET facilite le transfert — l'application des connaissances dans de nouveaux contextes différents de l'apprentissage initial."
+    },
+    {
+      q: "Quelle est la position du rappel actif parmi les stratégies d'apprentissage ?",
+      a: ["L'une des plus efficaces, avec peu d'utilisateurs spontanés","La plus connue et la plus spontanément utilisée par les élèves","Efficace uniquement pour les experts, pas pour les débutants","Peu efficace selon les méta-analyses récentes en éducation"],
+      correct: 0,
+      explain: "Le rappel actif est l'une des stratégies les mieux validées scientifiquement. Pourtant, paradoxalement, les élèves ont tendance à préférer la relecture, qui leur semble plus confortable — créant l'illusion de maîtrise décrite par la recherche."
+    },
+    {
+      q: "Pourquoi le questionnement est-il une clé majeure de la mémorisation à long terme ?",
+      a: ["Il force le cerveau à récupérer activement l'information stockée","Il aide à comprendre les contenus plus profondément et vite","Il occupe la mémoire de travail de façon optimale","Il crée une organisation visuelle du contenu à apprendre"],
+      correct: 0,
+      explain: "Le questionnement — se poser des questions sur le contenu — est l'une des clés majeures de la réussite mémorielle à long terme. Il force une récupération active, activant les mêmes circuits que le contenu à mémoriser."
+    },
+    {
+      q: "Qu'est-ce qu'une flashcard et comment sert-elle le rappel actif ?",
+      a: ["Une carte avec question/réponse qui force la récupération avant vérification","Une fiche de résumé à relire régulièrement pour mémoriser","Un outil de visualisation du contenu appris en cours","Une carte mnémotechnique avec images pour faciliter l'encodage"],
+      correct: 0,
+      explain: "La flashcard présente une question (recto) et force l'élève à rappeler la réponse avant de retourner la carte (verso). Ce processus de récupération active — sans voir la réponse d'emblée — est exactement le mécanisme du rappel actif."
+    },
+    {
+      q: "Qu'est-ce qu'un 'brain dump' comme technique de rappel actif ?",
+      a: ["Écrire de mémoire tout ce qu'on sait sur un sujet sans support","Résumer ses notes en les lisant attentivement et rapidement","Organiser visuellement ses connaissances en carte mentale","Dicter ses résumés à voix haute pour les enregistrer"],
+      correct: 0,
+      explain: "Le brain dump consiste à écrire de mémoire tout ce qu'on se rappelle sur un sujet, sans consulter ses notes. C'est une forme directe de rappel actif — on vide sa mémoire sur la page avant de vérifier ce qu'on a oublié."
+    },
+    {
+      q: "Pourquoi avoir la réponse directement sous les yeux empêche-t-il l'encodage ?",
+      a: ["Aucun effort de récupération n'est déclenché — le signal d'erreur est absent","L'information est trop visible et facile à lire rapidement","La mémoire de travail est surchargée par la lecture simultanée","L'attention est distraite par la présence du texte sous les yeux"],
+      correct: 0,
+      explain: "Si la réponse est déjà présente, le cerveau n'a pas besoin de générer de prédiction ni d'effort de récupération. Le signal d'erreur de prédiction — moteur de l'encodage profond — ne se déclenche pas. L'apprentissage est minimal."
+    },
+    {
+      q: "Quand le rappel actif est-il particulièrement bénéfique selon la recherche ?",
+      a: ["Quand il est accompagné d'un feedback immédiat sur la bonne réponse","Quand il est pratiqué uniquement par des élèves avancés en autonomie","Quand il remplace entièrement le cours magistral de l'enseignant","Quand il est utilisé uniquement la veille des examens importants"],
+      correct: 0,
+      explain: "L'effet test est amplifié quand il est suivi d'un feedback immédiat (d = 0,62 avec feedback vs d = 0,30 sans feedback). La combinaison rappel actif + correction immédiate est particulièrement puissante pour l'encodage."
+    },
+    {
+      q: "Quelle forme de test est la plus bénéfique pour la mémorisation selon Hattie ?",
+      a: ["Les tests fréquents courts plutôt que les tests longs et espacés","Les longs examens annuels qui couvrent l'ensemble de l'année","Les QCM standardisés administrés dans des conditions formelles","Les devoirs à la maison notés par l'enseignant régulièrement"],
+      correct: 0,
+      explain: "La recherche montre que plusieurs tests courts fréquents produisent de meilleurs résultats qu'un petit nombre de tests longs. La fréquence de récupération compte plus que la longueur de chaque session de test."
+    },
+    {
+      q: "Qu'est-ce que la 'difficulté désirable' dans le contexte du rappel actif ?",
+      a: ["Un effort cognitif difficile à court terme mais bénéfique à long terme","Un contenu trop difficile qui décourage et démotive les apprenants","Une stratégie réservée aux matières complexes et abstraites","Un type d'erreur volontaire introduit pour stimuler l'attention"],
+      correct: 0,
+      explain: "Le rappel actif est une 'difficulté désirable' : il est moins fluide et confortable que la relecture, mais cet effort supplémentaire est précisément ce qui produit une meilleure rétention à long terme. La difficulté est le signal de l'apprentissage."
+    },
+    {
+      q: "Quel est l'effet de l'espacement dans le rappel actif ?",
+      a: ["Il optimise le renforcement synaptique en intervenant avant l'extinction","Il réduit l'effort de récupération pour rendre l'apprentissage plus facile","Il permet de couvrir plus de contenu en moins de temps total","Il supprime la nécessité de répéter les informations bien apprises"],
+      correct: 0,
+      explain: "Combiner rappel actif et espacement est optimal : la récupération espacée intervient juste avant l'extinction de la trace, maximisant l'effort de récupération et donc le renforcement des connexions synaptiques. Les deux se potentialisent mutuellement."
+    },
+    {
+      q: "Que signifie 'récupération active' par opposition à 'reconnaissance' ?",
+      a: ["Reconstruire l'information de mémoire sans indice externe fourni","Identifier la bonne réponse parmi des propositions présentées","Confirmer qu'une information vue est correcte ou incorrecte","Choisir entre deux alternatives présentées simultanément"],
+      correct: 0,
+      explain: "La récupération active (rappel libre) exige de reconstruire l'information depuis la mémoire, sans aucun indice externe. C'est un processus bien plus exigeant que la reconnaissance — et bien plus bénéfique pour la consolidation mémorielle."
+    },
+    {
+      q: "Pourquoi les élèves préfèrent-ils spontanément la relecture au rappel actif ?",
+      a: ["La relecture est fluide et confortable, le rappel actif est inconfortable","Les élèves ne connaissent pas l'existence du rappel actif","La relecture est recommandée par la majorité des enseignants","Le rappel actif est chronophage et difficile à organiser seul"],
+      correct: 0,
+      explain: "La relecture est fluide et donne une impression de maîtrise — une sensation agréable. Le rappel actif est inconfortable car on réalise ce qu'on ne sait pas. Les élèves choisissent ce qui semble efficace, pas ce qui l'est réellement."
+    },
+    {
+      q: "Qu'est-ce que le testing effect montre concernant la fréquence des tests ?",
+      a: ["Des tests fréquents améliorent les résultats bien plus que des tests rares","La fréquence des tests n'a aucun effet sur la rétention mémorielle","Trop de tests augmentent le stress et diminuent les performances","Un seul test final par semestre suffit pour consolider les acquis"],
+      correct: 0,
+      explain: "Les élèves qui passent au moins un test pendant un terme scorent environ un demi écart-type de plus aux évaluations finales que ceux qui n'en passent aucun. La fréquence du rappel actif est un facteur clé de la réussite."
+    },
+    {
+      q: "Quel rôle joue l'attention dans l'efficacité du rappel actif ?",
+      a: ["Elle est indispensable — sans focus, l'effort de récupération est vain","L'attention ne joue aucun rôle dans le processus de récupération","L'attention n'intervient qu'au moment de l'encodage initial","Elle peut être partielle si le contenu rappelé est déjà connu"],
+      correct: 0,
+      explain: "L'attention est une condition nécessaire à tout apprentissage, y compris au rappel actif. Apprendre crée de nouvelles connexions neuronales, mais ce processus requiert une activation attentionnelle suffisante pour déclencher les modifications synaptiques."
+    },
+    {
+      q: "Qu'est-ce que la 'récupération volontaire' en mémoire ?",
+      a: ["Un effort conscient et intentionnel pour rappeler une information","Un processus automatique qui ne nécessite aucun effort cognitif","La récupération déclenchée par un indice environnemental extérieur","Le rappel d'une information lors d'un rêve ou d'un moment de détente"],
+      correct: 0,
+      explain: "La récupération volontaire est un acte cognitif intentionnel : on décide de rappeler une information et on effectue un effort pour la retrouver. Elle s'oppose à la récupération spontanée (qui survient sans effort) ou involontaire."
+    },
+    {
+      q: "Comment le rappel actif agit-il sur l'élagage synaptique ?",
+      a: ["Il renforce les synapses utilisées et favorise l'élimination des inutiles","Il empêche tout élagage en maintenant toutes les connexions actives","Il crée de nouvelles synapses sans affecter les connexions existantes","L'élagage synaptique est indépendant des pratiques de mémorisation"],
+      correct: 0,
+      explain: "L'élagage synaptique est un processus d'optimisation : les connexions fréquemment utilisées (via le rappel actif) sont renforcées et conservées, tandis que celles rarement activées s'affaiblissent. C'est le 'Darwinisme neuronal' appliqué à l'apprentissage."
+    },
+    {
+      q: "Peut-on pratiquer le rappel actif en groupe ?",
+      a: ["Oui, les groupes de réactivation collective sont une forme efficace","Non, le rappel actif est uniquement une pratique individuelle","Oui, mais uniquement entre élèves du même niveau scolaire","Non, cela crée trop d'interférences entre les différentes mémoires"],
+      correct: 0,
+      explain: "Les groupes de réactivation — où des élèves récupèrent ensemble leurs connaissances — sont une forme valide et efficace de rappel actif. La verbalisation pour les autres force la récupération et ajoute une dimension sociale qui enrichit l'encodage."
+    },
+    {
+      q: "Qu'est-ce que le rappel actif révèle sur ce qu'on ne sait pas encore ?",
+      a: ["Il expose les lacunes réelles en mémoire, ce que la relecture masque","Il prouve qu'on n'a pas besoin de réviser le contenu déjà connu","Il montre uniquement les erreurs de compréhension, pas les oublis","Il révèle les lacunes uniquement pour les apprentissages récents"],
+      correct: 0,
+      explain: "Une des grandes vertus du rappel actif est de révéler les lacunes réelles — ce qu'on croit savoir mais ne peut pas rappeler. La relecture masque ces lacunes en créant une familiarité trompeuse. Le rappel actif est un diagnostique honnête de sa mémoire."
+    },
+    {
+      q: "Comment le rappel actif peut-il être intégré facilement dans une classe ?",
+      a: ["Quiz formatifs en début de séance sur le contenu des cours précédents","Uniquement via des outils numériques coûteux et spécialisés","En supprimant tous les cours magistraux au profit du testing","En demandant aux élèves de réviser davantage à la maison"],
+      correct: 0,
+      explain: "Le rappel actif peut être intégré simplement : 5-10 minutes de quiz oral ou écrit en début de séance sur les contenus précédents, questions flash, récitation en binôme, ou ardoises. Aucun outil coûteux n'est nécessaire."
+    },
+    {
+      q: "Quelle est l'erreur la plus commune des élèves en matière de révision ?",
+      a: ["Relire passivement en croyant que la familiarité équivaut à maîtrise","Passer trop de temps sur le rappel actif et pas assez sur la lecture","Se tester trop tôt avant d'avoir bien lu et compris le contenu","Alterner trop rapidement entre différentes stratégies de révision"],
+      correct: 0,
+      explain: "L'erreur la plus répandue est de confondre la familiarité (je reconnais ce contenu en le voyant) avec la maîtrise (je peux le rappeler et l'expliquer). La relecture répétée entretient cette confusion — le rappel actif la dissipe."
+    },
+    {
+      q: "Quel est l'avantage du rappel actif sur l'apprentissage par la répétition passive ?",
+      a: ["Il crée un encodage plus profond via l'effort de récupération actif","Il est identique dans ses effets mais simplement plus rapide","Il permet de mémoriser sans comprendre le contenu étudié","Il supprime le besoin de révisions ultérieures une fois mémorisé"],
+      correct: 0,
+      explain: "La répétition passive (relire, réécouter) crée un encodage superficiel par familiarité. Le rappel actif crée un encodage profond via l'effort de récupération — activant et renforçant les réseaux neuronaux de façon bien plus robuste et durable."
+    }
+  ],
+
+  alaise: [
+    {
+      q: "Comment l'effet test améliore-t-il spécifiquement le transfert des connaissances ?",
+      a: ["La récupération crée des connexions latérales rendant les savoirs accessibles depuis de nouveaux angles","L'effet test améliore uniquement la récupération directe sans affecter le transfert","Le transfert n'est pas lié au type de stratégie de mémorisation utilisée","L'effet test améliore le transfert uniquement pour des tâches identiques"],
+      correct: 0,
+      explain: "Chaque récupération active enrichit le réseau sémantique autour du concept : elle crée des connexions depuis de multiples angles. Ces connexions rendent la connaissance accessible dans de nouveaux contextes — précisément ce que requiert le transfert."
+    },
+    {
+      q: "Pourquoi le rappel actif sur une information incorrecte peut-il quand même être bénéfique ?",
+      a: ["L'effort de génération crée un encodage fort, et le feedback corrige l'erreur ensuite","Un rappel incorrect renforce la mauvaise réponse et nuit à l'apprentissage","Le rappel n'est bénéfique que si la réponse produite est correcte","Un rappel erroné oblige à tout réapprendre depuis le début"],
+      correct: 0,
+      explain: "L'effet de génération montre que produire une réponse — même incorrecte — crée un encodage plus profond que lire la bonne réponse. L'erreur génère un signal de prédiction fort ; le feedback immédiat corrige et consolide alors plus efficacement."
+    },
+    {
+      q: "Comment la plasticité synaptique explique-t-elle les bénéfices du rappel actif ?",
+      a: ["Chaque récupération active et renforce les connexions synaptiques du réseau mémoriel","La plasticité synaptique est indépendante des pratiques de mémorisation","Le rappel actif crée uniquement de nouveaux neurones, pas de nouvelles connexions","La plasticité synaptique joue uniquement lors de l'encodage initial"],
+      correct: 0,
+      explain: "La plasticité synaptique (force variable des connexions selon l'utilisation) est le substrat du rappel actif : chaque récupération réactive les mêmes réseaux, renforçant leurs connexions selon Hebb. Plus on récupère, plus les connexions sont solides."
+    },
+    {
+      q: "Qu'est-ce que l'interleaving et quel lien entretient-il avec le rappel actif ?",
+      a: ["Mélanger les contenus force la discrimination et amplifie l'effort de récupération actif","L'interleaving est une stratégie indépendante du rappel actif","L'interleaving réduit les bénéfices du rappel actif en créant de la confusion","Il faut d'abord maîtriser par blocs avant de pratiquer tout interleaving"],
+      correct: 0,
+      explain: "L'interleaving (mélanger les contenus pendant la révision) force le cerveau à discriminer et choisir la bonne stratégie à chaque item — un effort de récupération accru. Combiné au rappel actif, il potentialise l'effet test en augmentant la discrimination et le transfert."
+    },
+    {
+      q: "Comment distinguer un rappel actif efficace d'un simple exercice de reconnaissance ?",
+      a: ["Le rappel efficace exige de produire la réponse sans voir les options proposées","Tout exercice avec correction immédiate est un rappel actif efficace","Les QCM avec quatre options sont toujours du rappel actif pur","La reconnaissance devient rappel actif si on prend le temps d'y réfléchir"],
+      correct: 0,
+      explain: "Un QCM avec choix multiples implique de la reconnaissance (valider une option présentée) — plus facile que le rappel libre. Le rappel actif pur exige de produire la réponse sans indice. La reconnaissance peut être utile, mais le rappel libre est plus bénéfique pour la mémorisation."
+    },
+    {
+      q: "Pourquoi la fréquence du rappel actif importe-t-elle plus que la longueur des sessions ?",
+      a: ["Des récupérations fréquentes courtes réactivent souvent les circuits, ce qui consolide davantage","Une longue session unique produit plus de connexions synaptiques qu'une courte session","La longueur des sessions est le seul facteur déterminant l'efficacité du rappel","La fréquence et la longueur ont un effet strictement équivalent sur la mémoire"],
+      correct: 0,
+      explain: "Des sessions courtes fréquentes réactivent régulièrement les circuits mémoriels — chaque réactivation renforce les connexions avant extinction. Une longue session unique produit des rendements décroissants. La fréquence distribue les renforcements dans le temps de façon optimale."
+    },
+    {
+      q: "Quel est le lien entre le rappel actif et le cerveau prédictif ?",
+      a: ["Chercher une réponse génère une prédiction ; la recevoir crée un signal d'erreur puissant","Le cerveau prédictif est actif uniquement lors de l'encodage, pas lors du rappel","Le signal d'erreur n'intervient que si la réponse produite est incorrecte","Le cerveau prédictif s'oppose au rappel actif car il anticipe les erreurs"],
+      correct: 0,
+      explain: "Le cerveau génère constamment des prédictions. Chercher une réponse en rappel actif génère une prédiction explicite. Recevoir la bonne réponse crée un signal d'erreur (ou de confirmation) qui déclenche un encodage fort — le moteur neurologique du testing effect."
+    },
+    {
+      q: "Comment le rappel actif s'articule-t-il avec le feedback pour maximiser l'effet ?",
+      a: ["Le feedback immédiat après le rappel double l'effet test par rapport au rappel seul","Le feedback nuit au rappel actif en révélant la réponse trop tôt","Le feedback doit être différé de 24h pour maximiser la consolidation","Le feedback n'a aucun impact supplémentaire sur l'effet test"],
+      correct: 0,
+      explain: "Gocmen (2003) trouve d = 0,41 pour le testing seul, mais d = 0,62 quand il est accompagné de feedback immédiat (vs d = 0,30 sans). Le feedback après rappel corrige l'erreur de prédiction et consolide la bonne réponse — un effet synergique puissant."
+    },
+    {
+      q: "Pourquoi le rappel actif est-il plus efficace que la relecture même quand les deux prennent le même temps ?",
+      a: ["Le rappel actif active des processus d'encodage plus profonds que la simple reconnaissance","Ils sont équivalents à durée identique selon les méta-analyses récentes","La relecture est supérieure si elle est faite attentivement et lentement","Le rappel actif est plus efficace uniquement s'il inclut des flashcards"],
+      correct: 0,
+      explain: "À temps égal, le rappel actif produit une mémorisation bien supérieure car il engage des processus cognitifs plus profonds (récupération, prédiction, correction d'erreur). La relecture est fluide mais superficielle — l'effort du rappel est précisément ce qui consolide."
+    },
+    {
+      q: "Comment le rappel actif contribue-t-il à la métacognition des élèves ?",
+      a: ["Il révèle les lacunes réelles, permettant un monitoring précis de ses apprentissages","Il remplace la métacognition en automatisant l'évaluation des acquis","Il ne contribue pas à la métacognition — ce sont deux processus séparés","Il développe uniquement les connaissances MC sur les stratégies d'étude"],
+      correct: 0,
+      explain: "Le rappel actif est un outil métacognitif puissant : en révélant ce qu'on ne sait pas (lacunes), il permet un monitoring précis et honnête de ses apprentissages. Il aide l'élève à calibrer ses jugements d'apprentissage et à orienter ses révisions efficacement."
+    },
+    {
+      q: "Qu'est-ce que le 'jugement d'apprentissage' (JOL) et comment le rappel actif l'améliore-t-il ?",
+      a: ["Le JOL est l'évaluation subjective de sa maîtrise — le rappel actif la calibre","Le JOL désigne la note obtenue lors d'un test formatif en classe","Le JOL est un outil d'évaluation réservé aux seuls enseignants experts","Le rappel actif détériore les JOL en révélant trop de lacunes aux élèves"],
+      correct: 0,
+      explain: "Le jugement d'apprentissage (JOL) est l'évaluation subjective de sa propre maîtrise. La relecture surestime les JOL (illusion de maîtrise). Le rappel actif les calibre précisément en exposant les vraies lacunes — une compétence métacognitive fondamentale."
+    },
+    {
+      q: "Pourquoi le rappel actif réduit-il l'anxiété de test sur le long terme ?",
+      a: ["Les tests fréquents habituent au format, réduisant la nouveauté et le stress associé","Le rappel actif augmente l'anxiété car il révèle les lacunes fréquemment","Il réduit l'anxiété uniquement pour les élèves à fort niveau de base","La réduction de l'anxiété est un effet secondaire non documenté scientifiquement"],
+      correct: 0,
+      explain: "Les tests fréquents désensibilisent progressivement au contexte d'évaluation : la situation perd de sa nouveauté et de son caractère menaçant. Par ailleurs, connaître ses vrais acquis réduit l'incertitude — source principale d'anxiété avant un examen."
+    },
+    {
+      q: "Comment l'élagage synaptique contribue-t-il à l'efficacité du rappel actif ?",
+      a: ["L'élagage élimine les connexions peu utilisées, laissant les réseaux actifs plus efficaces","L'élagage synaptique affaiblit les connexions utilisées par le rappel actif","L'élagage est uniquement présent pendant l'adolescence, pas à l'âge adulte","Le rappel actif empêche tout élagage en maintenant toutes les connexions"],
+      correct: 0,
+      explain: "L'élagage synaptique (suppression des connexions peu utilisées) agit en synergie avec le rappel actif : les circuits régulièrement réactivés par le rappel sont renforcés et conservés, tandis que les connexions parasites s'éliminent — rendant le réseau plus efficace et précis."
+    },
+    {
+      q: "Qu'est-ce que la 'consolidation mémorielle' et comment le rappel actif y contribue-t-il ?",
+      a: ["La consolidation transforme les traces fragiles en mémoire durable — le rappel l'accélère","La consolidation se produit uniquement pendant le sommeil sans lien au rappel","Le rappel actif s'oppose à la consolidation en perturbant les traces existantes","La consolidation est un processus automatique indépendant des pratiques de révision"],
+      correct: 0,
+      explain: "La consolidation transforme les traces mnésiques fragiles (encodage initial) en représentations durables (mémoire longue). Le rappel actif accélère cette transformation en réactivant et renforçant les circuits — une forme active de consolidation au-delà du seul sommeil."
+    },
+    {
+      q: "Pourquoi le rappel actif est-il efficace même quand on échoue à rappeler la réponse ?",
+      a: ["L'effort de recherche amorce les réseaux, rendant le feedback ensuite plus mémorable","Un rappel échoué renforce la mauvaise réponse et nuit à l'apprentissage","L'effet test ne s'applique qu'aux réponses correctement rappelées","Un échec de rappel décourage et réduit la motivation pour la suite"],
+      correct: 0,
+      explain: "Même un rappel raté est bénéfique : l'effort de recherche active les réseaux associés, les 'amorçant' pour la réception du feedback. La réponse correcte fournie ensuite est encodée dans un contexte neuronal déjà activé — renforçant la consolidation."
+    },
+    {
+      q: "Comment le testing effect se manifeste-t-il dans les disciplines scolaires concrètes ?",
+      a: ["Il améliore les résultats dans toutes les disciplines où on peut se questionner","Il ne fonctionne qu'en sciences et mathématiques, pas en littérature","Il est efficace uniquement pour les contenus factuels et les dates","Son efficacité varie tellement qu'il est difficile à utiliser en classe"],
+      correct: 0,
+      explain: "L'effet test a été documenté dans des disciplines variées — mathématiques, sciences, langues, histoire. Partout où l'on peut formuler des questions sur le contenu (faits, concepts, procédures, raisonnements), le rappel actif produit des bénéfices significatifs."
+    },
+    {
+      q: "Quelle est la relation entre rappel actif et apprentissage par l'erreur ?",
+      a: ["L'erreur lors du rappel est un signal d'apprentissage, pas un échec à éviter","Les erreurs lors du rappel actif doivent être évitées pour ne pas les renforcer","Le rappel actif est uniquement efficace quand il produit des réponses correctes","L'apprentissage par l'erreur est une approche distincte, indépendante du rappel actif"],
+      correct: 0,
+      explain: "Le rappel actif transforme le statut de l'erreur : quand on échoue à rappeler, l'erreur signale précisément là où le réseau mémoriel est faible. Le feedback corrige et consolide. L'erreur devient un signal utile plutôt qu'une menace à l'identité."
+    },
+    {
+      q: "Pourquoi la répétition massive ('cramming') est-elle inférieure au rappel actif espacé ?",
+      a: ["Le cramming active la MdT temporairement sans consolidation synaptique durable","Le cramming et le rappel espacé produisent des effets équivalents à terme","Le cramming produit une meilleure rétention à court terme et long terme","Le rappel espacé est uniquement supérieur pour les contenus complexes"],
+      correct: 0,
+      explain: "Le cramming active intensément la MdT — suffisant pour un test immédiat. Sans espacement, la myélinisation et le renforcement synaptique restent insuffisants. Le rappel actif espacé réactive les circuits avant extinction, produisant une consolidation durable que le cramming ne peut pas égaler."
+    },
+    {
+      q: "Comment le rappel actif s'intègre-t-il dans une séquence pédagogique optimale ?",
+      a: ["Comprendre d'abord, puis rappel actif immédiat, puis rappel espacé ultérieur","Rappel actif avant toute instruction pour prétester les connaissances","Uniquement en fin de séquence comme outil d'évaluation finale","De façon aléatoire selon l'inspiration de l'enseignant et des élèves"],
+      correct: 0,
+      explain: "La séquence optimale est : instruction (comprendre) → rappel actif immédiat (consolider) → rappel actif espacé ultérieur (renforcer). La compréhension est le point de départ indispensable, mais sans rappel actif répété, la trace s'efface selon la courbe d'Ebbinghaus."
+    },
+    {
+      q: "Quel impact le rappel actif a-t-il sur les inégalités d'apprentissage selon la recherche ?",
+      a: ["Il peut bénéficier particulièrement aux élèves de milieux défavorisés en démocratisant des stratégies efficaces","Il bénéficie uniquement aux élèves déjà performants et motivés","Il creuse les inégalités car il requiert une autonomie préalable développée","Son impact est strictement identique pour tous les profils d'élèves"],
+      correct: 0,
+      explain: "Certaines études (notamment Samson, 1985) montrent des effets plus marqués chez les élèves de milieux défavorisés. Le rappel actif démocratise une stratégie que certaines familles transmettent implicitement — réduisant potentiellement les inégalités liées au capital culturel."
+    },
+    {
+      q: "Qu'apporte la neurogénèse hippocampique à la compréhension du rappel actif ?",
+      a: ["Elle permet d'apprendre ET de désapprendre — le rappel actif guide quels circuits maintenir","La neurogénèse est totalement indépendante des pratiques de mémorisation","Elle intervient uniquement lors du sommeil, pas pendant les révisions","La neurogénèse adulte ne concerne pas la mémoire déclarative scolaire"],
+      correct: 0,
+      explain: "La neurogénèse hippocampique (création de nouveaux neurones dans l'hippocampe) permet à la fois d'apprendre et de désapprendre ce qui n'est pas nécessaire. Le rappel actif régulier signal quels circuits renforcer vs laisser s'effacer — un guidage actif de la neuroplasticité."
+    },
+    {
+      q: "Comment le rappel actif interagit-il avec la mémoire de travail ?",
+      a: ["Il sollicite la MdT pour la recherche, mais libère des ressources une fois automatisé","Il sature systématiquement la MdT et nuit aux apprentissages complexes","Il est efficace uniquement quand la MdT n'est pas sollicitée par ailleurs","Il évite entièrement la MdT en passant directement par la mémoire longue"],
+      correct: 0,
+      explain: "Lors du rappel actif, la MdT est mobilisée pour l'effort de recherche. Mais à mesure que les connaissances se consolident et s'automatisent, leur rappel requiert moins de ressources en MdT — libérant de la capacité pour traiter de nouvelles informations complexes."
+    },
+    {
+      q: "Pourquoi les enseignants sous-utilisent-ils le rappel actif malgré son efficacité prouvée ?",
+      a: ["Il semble inefficace car inconfortable, et prend du temps sur l'instruction directe","Les enseignants ignorent complètement l'existence de l'effet test","Le rappel actif est perçu comme trop difficile à mettre en œuvre","Il n'existe aucune raison structurelle à cette sous-utilisation"],
+      correct: 0,
+      explain: "Le rappel actif résiste à l'adoption pour plusieurs raisons : il semble moins 'productif' que l'instruction (on révise plutôt qu'on avance), il est inconfortable pour les élèves, et les enseignants surestiment l'efficacité de la relecture qu'ils ont eux-mêmes pratiquée."
+    },
+    {
+      q: "Comment le rappel actif se distingue-t-il du simple fait de 'faire des exercices' ?",
+      a: ["Faire des exercices vus peut être de la reconnaissance — le rappel actif exige la reconstruction","Les exercices sont toujours du rappel actif car ils demandent un effort","Faire des exercices corrigés est une forme supérieure de rappel actif","Il n'y a aucune distinction fonctionnelle entre exercices et rappel actif"],
+      correct: 0,
+      explain: "Faire un exercice déjà vu en ayant la correction sous les yeux peut relever de la reconnaissance. Le rappel actif pur exige de produire la réponse sans indice ni modèle. Faire des exercices sans support, de mémoire, est du rappel actif — faire un exercice avec le corrigé à côté, bien moins."
+    },
+    {
+      q: "Quelle est la relation entre rappel actif et apprentissage collaboratif ?",
+      a: ["Expliquer un concept à un pair force un rappel actif profond et structuré","L'apprentissage collaboratif est inefficace pour le rappel actif individuel","Il faut d'abord pratiquer le rappel seul avant de l'utiliser en groupe","Les deux stratégies se nuisent mutuellement si elles sont combinées"],
+      correct: 0,
+      explain: "Expliquer un concept à un pair ('effet Feynman') est une forme particulièrement puissante de rappel actif : cela force à récupérer, organiser et reformuler les connaissances — révélant les lacunes et créant un encodage plus profond que la récupération solitaire."
+    },
+    {
+      q: "Comment la myélinisation s'articule-t-elle avec la pratique du rappel actif ?",
+      a: ["Le rappel répété épaissit la myéline des circuits actifs, les rendant plus rapides","La myélinisation est totalement indépendante des stratégies de révision","Le rappel actif réduit la myélinisation en stimulant l'élagage synaptique","La myélinisation n'intervient que pendant l'enfance, pas lors des révisions"],
+      correct: 0,
+      explain: "La répétition augmente la myélinisation des circuits fréquemment utilisés. Le rappel actif régulier active intensément les mêmes réseaux — stimulant l'épaississement de la myéline, qui accélère et optimise la conduction nerveuse dans ces circuits mémorisés."
+    },
+    {
+      q: "Qu'est-ce que la 'pratique de récupération' et comment se distingue-t-elle du 'testing' évaluatif ?",
+      a: ["La pratique de récupération vise l'encodage profond, le testing évalue les acquis","Ce sont deux noms identiques pour le même processus pédagogique","Le testing est toujours formateur ; la pratique de récupération est sommative","La distinction n'a pas d'implication pour les pratiques en classe"],
+      correct: 0,
+      explain: "La 'pratique de récupération' (retrieval practice) désigne l'utilisation du test comme outil d'apprentissage, pas d'évaluation. Le but n'est pas de noter mais de consolider. Cette distinction change profondément la façon dont on conçoit et utilise les tests en classe."
+    }
+  ],
+
+  expert: [
+    {
+      q: "Analyser : deux élèves révisent le même contenu — l'un relit 5 fois, l'autre se teste 2 fois espacé. Un mois après, qui retient le mieux et pourquoi ?",
+      a: ["Celui qui se teste : effet test + espacement + signal d'erreur créent une trace durable","Celui qui relit 5 fois : la répétition massive crée une trace plus profonde","Les deux ont des résultats équivalents à un mois d'intervalle","Cela dépend exclusivement du type de contenu et de la discipline"],
+      correct: 0,
+      explain: "Le second cumule trois effets synergiques : l'effet test (récupération active > relecture), l'espacement (renforcement avant extinction), et le signal d'erreur de prédiction (consolidation à chaque erreur détectée). Le premier crée une familiarité temporaire qui s'efface rapidement."
+    },
+    {
+      q: "Pourquoi la difficulté désirable du rappel actif contredit-elle l'intuition pédagogique ordinaire ?",
+      a: ["On cherche naturellement à rendre l'apprentissage fluide, mais la fluidité indique peu d'encodage","Les enseignants préfèrent la difficulté — la fluidité est rarement visée en classe","La difficulté n'est pas désirable selon les méta-analyses récentes sur l'apprentissage","L'intuition pédagogique préconise déjà la difficulté — il n'y a pas de contradiction"],
+      correct: 0,
+      explain: "L'intuition pédagogique cherche à faciliter — réduire les erreurs, rendre l'apprentissage fluide. Mais la fluidité est le signe d'un encodage superficiel. La difficulté du rappel (erreurs, effort) est précisément le signal que l'encodage profond est en cours — un paradoxe fondamental."
+    },
+    {
+      q: "Comment articuler rappel actif, interleaving et espacement pour une révision optimale ?",
+      a: ["Rappel actif, espacement et interleaving combinés — les trois effets se potentialisent","Il faut choisir une seule stratégie selon le type de contenu étudié","L'interleaving nuit au rappel actif en créant de la confusion mémorielle","Les trois stratégies s'annulent mutuellement quand elles sont combinées"],
+      correct: 0,
+      explain: "Les trois stratégies se potentialisent : le rappel actif crée l'encodage profond, l'espacement optimise le renforcement synaptique, l'interleaving force la discrimination entre contenus similaires. Combinés, ils produisent une rétention et un transfert maxaux."
+    },
+    {
+      q: "Analyser : un enseignant fait un quiz en début de chaque cours sur la séance précédente. Quels mécanismes cognitifs sont activés ?",
+      a: ["Rappel actif (récupération), espacement (J+1), métacognition (révélation des lacunes) et feedback","Uniquement la mémorisation à court terme via la mémoire de travail","Seulement le feedback si la correction est donnée immédiatement après","Uniquement la motivation et l'engagement des élèves envers le cours"],
+      correct: 0,
+      explain: "Cette pratique active en cascade : rappel actif (récupérer de mémoire), espacement naturel (depuis la séance précédente), signal d'erreur de prédiction (comparaison avec la bonne réponse), feedback immédiat (correction), et métacognition (prise de conscience des lacunes). Un dispositif simple aux effets multiples."
+    },
+    {
+      q: "Pourquoi le testing effect persiste-t-il même pour des items non testés mais liés ?",
+      a: ["Le rappel d'un concept active ses connexions réseau, facilitant la récupération des éléments liés","L'effet ne se produit qu'entre items identiques ou très similaires","Les items non testés ne bénéficient d'aucun effet de l'entraînement","L'effet test ne concerne que les items explicitement testés dans la session"],
+      correct: 0,
+      explain: "Le rappel d'un concept active son réseau sémantique entier — renforçant également les connexions vers les concepts associés (même non testés). C'est l'effet de 'spreading activation' : récupérer un nœud renforce les chemins vers ses nœuds voisins dans le réseau."
+    },
+    {
+      q: "Comment expliquer que des tests incorrectement répondus améliorent parfois davantage que les tests corrects ?",
+      a: ["L'erreur crée un signal de prédiction fort, rendant le feedback correctif particulièrement mémorable","Les réponses incorrectes prouvent qu'on n'a pas appris et nécessitent de tout recommencer","Un test réussi n'engage aucun processus d'encodage selon la recherche","Cette amélioration s'observe uniquement pour des contenus simples et factuels"],
+      correct: 0,
+      explain: "Quand on se trompe, le signal d'erreur de prédiction est maximal — le cerveau doit recalibrer fortement. La bonne réponse reçue ensuite est encodée dans un contexte neuronal très activé. L'erreur devient paradoxalement un accélérateur d'encodage si le feedback suit rapidement."
+    },
+    {
+      q: "Comment le rappel actif interagit-il avec l'élagage synaptique pour 'sculpter' la mémoire à long terme ?",
+      a: ["Il sélectionne et renforce les connexions utiles, guidant l'élagage vers les connexions peu actives","Il empêche tout élagage en maintenant toutes les connexions indifféremment actives","L'élagage synaptique se produit indépendamment des pratiques de mémorisation","Le rappel actif et l'élagage sont deux processus incompatibles qui s'annulent"],
+      correct: 0,
+      explain: "Le rappel actif guide la plasticité synaptique : les circuits régulièrement réactivés se renforcent et survivent à l'élagage, tandis que les connexions peu sollicitées s'affaiblissent. C'est un processus de 'sculpture' mémorielle — le Darwinisme neuronal au service de l'apprentissage intentionnel."
+    },
+    {
+      q: "Pourquoi le rappel actif est-il particulièrement puissant pour les 'higher-order outcomes' (compétences de haut niveau) ?",
+      a: ["La récupération de concepts complexes force des connexions entre réseaux plus riches et transférables","Le rappel actif n'est efficace que pour les connaissances factuelles simples","Les compétences de haut niveau requièrent uniquement de la compréhension, pas de mémorisation","L'effet test est inférieur pour les compétences complexes selon les méta-analyses"],
+      correct: 0,
+      explain: "Pour les compétences de haut niveau (analyse, synthèse, transfert), le rappel actif force des connexions entre des réseaux conceptuels complexes. La recherche (Clariana & Koul, 2006) montre que le feedback multi-essais est plus efficace pour les outcomes de haut niveau (d = 0,10) que pour les outcomes de surface."
+    },
+    {
+      q: "Analyser : un programme scolaire remplace les devoirs de maison par des quiz formatifs quotidiens en classe. Quelles sont les implications pédagogiques ?",
+      a: ["Rappel actif régulier, feedback immédiat, révélation des lacunes et réduction des inégalités numériques","Perte de temps sur l'instruction et surcharge évaluative contre-productive","Les quiz quotidiens créent du stress et nuisent à la motivation intrinsèque","Cela est efficace uniquement pour les élèves déjà motivés et performants"],
+      correct: 0,
+      explain: "Ce dispositif cumule plusieurs avantages : rappel actif fréquent (testing effect), feedback immédiat en classe (amplification de l'effet), égalité d'accès (pas de différences domicile), révélation des lacunes (métacognition), et désensibilisation à l'évaluation (réduction anxiété). Un investissement pédagogique à fort rapport coût/bénéfice."
+    },
+    {
+      q: "Quelle est la relation entre rappel actif et la théorie du traitement des niveaux de Craik & Lockhart ?",
+      a: ["Le rappel actif force un traitement sémantique profond — exactement ce qui produit les traces durables","La théorie de Craik & Lockhart s'oppose au rappel actif en valorisant la compréhension","Le rappel actif produit uniquement un traitement superficiel selon cette théorie","Craik & Lockhart n'ont pas étudié le lien entre récupération et profondeur de traitement"],
+      correct: 0,
+      explain: "Craik & Lockhart montrent que les traces durables viennent d'un traitement sémantique profond (sens, connexions). Le rappel actif est précisément un traitement profond : récupérer une information implique de l'élaborer, la contextualiser et la connecter — bien au-delà du traitement superficiel de la relecture."
+    },
+    {
+      q: "Comment le rappel actif peut-il contrecarrer l'effet d'interférence entre apprentissages similaires ?",
+      a: ["Il développe la discrimination entre contenus similaires par la pratique répétée de leur distinction","Le rappel actif augmente l'interférence car il active plusieurs réseaux simultanément","L'interférence est irréductible — le rappel actif ne peut pas la diminuer","Il faut éviter le rappel actif pour les contenus similaires afin de réduire l'interférence"],
+      correct: 0,
+      explain: "L'interférence entre contenus similaires (proactive ou rétroactive) est réduite par le rappel actif répété qui force le cerveau à discriminer précisément entre les items. Combiné à l'interleaving, le rappel actif est la stratégie la plus efficace pour apprendre des contenus qui se ressemblent."
+    },
+    {
+      q: "Pourquoi enseigner le rappel actif aux élèves améliore-t-il leur autonomie d'apprentissage ?",
+      a: ["Ils acquièrent une stratégie efficace applicable sans aide — réduisant leur dépendance à l'enseignant","Le rappel actif rend les élèves dépendants des quiz fournis par l'enseignant","L'autonomie nécessite de ne pas se tester — mais de comprendre en profondeur","Le rappel actif n'améliore l'autonomie que pour les élèves déjà très avancés"],
+      correct: 0,
+      explain: "Maîtriser le rappel actif équipe l'élève d'une stratégie puissante et auto-applicable : flashcards, brain dump, récitation — aucun outil coûteux requis. L'élève peut évaluer ses propres lacunes, orienter ses révisions et valider ses acquis de façon autonome — le cœur de l'autorégulation."
+    },
+    {
+      q: "Comment la recherche sur le rappel actif remet-elle en question les pratiques d'évaluation traditionnelles ?",
+      a: ["Elle suggère d'utiliser les tests comme outils d'apprentissage et non uniquement de certification","Elle préconise de supprimer toute forme d'évaluation au profit de la compréhension","Elle valide entièrement les pratiques d'évaluation actuelles dans les systèmes éducatifs","Elle montre que l'évaluation sommative est plus efficace que l'évaluation formative"],
+      correct: 0,
+      explain: "La recherche sur l'effet test révèle un changement de paradigme : les tests ne sont pas seulement des outils de mesure des acquis, mais des outils d'apprentissage. Intégrer des tests fréquents dans l'enseignement (évaluation formative) produit des gains d'apprentissage significatifs — bien au-delà de leur fonction certificative."
+    },
+    {
+      q: "Analyser : un élève pratique le rappel actif mais n'obtient que des résultats médiocres après plusieurs semaines. Quelle hypothèse principale ?",
+      a: ["Le rappel intervient trop tôt avant toute compréhension solide de la matière","Le rappel actif est simplement inefficace pour cet élève en particulier","L'élève ne pratique pas assez fréquemment le rappel actif","Le rappel actif est une stratégie surévaluée qui ne fonctionne pas en pratique"],
+      correct: 0,
+      explain: "Le rappel actif présuppose une compréhension initiale. Si l'élève rappelle avant d'avoir compris, il consolide des représentations incorrectes ou vides. La séquence correcte est : comprendre d'abord, puis rappeler. Le rappel actif sans base de compréhension est comme récupérer un fichier vide — aucun contenu à consolider."
+    },
+    {
+      q: "Comment le rappel actif s'adapte-t-il aux différents types de contenus scolaires ?",
+      a: ["Il s'adapte à tout contenu via des formats variés : récitation, résolution, explication, schéma de mémoire","Il n'est efficace que pour les contenus factuels comme les dates et définitions","Il requiert des formats différents selon les disciplines mais produit des effets inégaux","Son efficacité est limitée aux contenus verbaux et ne s'applique pas aux maths"],
+      correct: 0,
+      explain: "Le rappel actif s'adapte à tous types de contenus via des formats variés : récitation pour le déclaratif, résolution de problèmes pour le procédural, reformulation pour le conceptuel, schéma de mémoire pour le structurel. La forme varie selon la discipline, mais le principe — récupérer sans indice — reste constant."
+    },
+    {
+      q: "Qu'est-ce que la 'retrieval-induced forgetting' (RIF) et quel défi pose-t-elle pour le rappel actif ?",
+      a: ["Rappeler certains items inhibe des items associés non testés — un effet paradoxal à gérer","La RIF prouve que le rappel actif est néfaste pour les réseaux sémantiques complexes","La RIF n'est qu'un artefact de laboratoire sans application en contexte scolaire","La RIF renforce tous les items associés, contrairement aux idées reçues"],
+      correct: 0,
+      explain: "La retrieval-induced forgetting (Anderson et al.) montre que récupérer certains items peut inhiber des items associés non testés dans le même réseau. Pour le rappel actif en classe, cela souligne l'importance de tester régulièrement l'ensemble du contenu, pas seulement certains items isolément."
+    },
+    {
+      q: "Comment la neurogénèse hippocampique interagit-elle avec le rappel actif pour soutenir l'apprentissage et l'oubli intentionnel ?",
+      a: ["Les nouveaux neurones permettent d'apprendre ET de désapprendre — le rappel actif guide ce processus","La neurogénèse empêche tout oubli — chaque rappel renforce définitivement tous les souvenirs","La neurogénèse adulte est totalement indépendante des pratiques de mémorisation","Le rappel actif réduit la neurogénèse en stimulant uniquement les anciens circuits"],
+      correct: 0,
+      explain: "La neurogénèse hippocampique permet à la fois d'apprendre (créer des traces) et de désapprendre (effacer ce qui n'est plus nécessaire). Le rappel actif régulier signal au cerveau quels circuits maintenir et renforcer, guidant activement ce processus de sélection mémorielle."
+    },
+    {
+      q: "Analyser : l'implémentation du rappel actif en classe suscite de la résistance des élèves. Comment l'expliquer et y répondre ?",
+      a: ["La résistance vient de l'inconfort du rappel — enseigner la difficulté désirable change la perception","Les élèves résistent car le rappel actif est réellement moins efficace que la relecture","La résistance prouve que cette stratégie n'est pas adaptée à tous les profils d'élèves","La résistance disparaît naturellement après quelques semaines sans intervention spécifique"],
+      correct: 0,
+      explain: "La résistance est logique : le rappel actif est inconfortable (révèle les lacunes, génère des erreurs), contrairement à la relecture fluide. La solution est d'enseigner explicitement le concept de difficulté désirable — faire comprendre aux élèves pourquoi l'inconfort est le signe que l'apprentissage se produit vraiment."
+    },
+    {
+      q: "Comment le rappel actif peut-il réduire l'écart de performance entre élèves de niveaux différents ?",
+      a: ["Il expose les lacunes de tous les élèves et permet des révisions ciblées et équitables","Il bénéficie uniquement aux élèves avancés qui savent déjà comment l'utiliser","Il creuse les écarts car les élèves faibles réussissent moins bien les rappels","Son impact sur les inégalités est négligeable selon les données disponibles"],
+      correct: 0,
+      explain: "Le rappel actif révèle les lacunes de chaque élève — permettant des révisions ciblées pour tous. Les élèves moins avancés bénéficient particulièrement du feedback correctif qui suit le rappel. Des études montrent des effets plus importants pour les élèves de niveaux initialement plus faibles."
+    },
+    {
+      q: "Quelle est la limite principale du rappel actif isolé des autres stratégies ?",
+      a: ["Sans espacement, compréhension initiale et feedback, il consolide des traces insuffisamment riches","Le rappel actif seul est entièrement suffisant — aucune autre stratégie n'est nécessaire","Sa limite principale est d'être applicable uniquement en groupe et non individuellement","Il ne fonctionne qu'à partir d'un certain niveau de compétence dans la discipline"],
+      correct: 0,
+      explain: "Le rappel actif est puissant mais insuffisant isolément. Sans compréhension initiale, il consolide du vide. Sans espacement, les bénéfices s'amenuisent rapidement. Sans feedback, les erreurs peuvent se consolider. La puissance maximale vient de la combinaison : compréhension + rappel actif + espacement + feedback."
+    },
+    {
+      q: "Comment concevoir une évaluation sommative qui préserve les bénéfices du rappel actif ?",
+      a: ["L'évaluation elle-même devient une session de rappel actif quand elle inclut du rappel libre noté","Il faut séparer entièrement l'évaluation formative et sommative sans lien entre elles","Les évaluations sommatives nuisent toujours aux bénéfices du rappel actif formatif","L'évaluation sommative doit uniquement mesurer la compréhension, pas la mémorisation"],
+      correct: 0,
+      explain: "Une évaluation sommative bien conçue (rappel libre, sans fiches) est elle-même une session de rappel actif : les élèves récupèrent de mémoire, produisent, et s'exposent à un feedback (corrigé). Le continuum formatif-sommatif peut être une spirale de renforcement si la conception pédagogique est cohérente."
+    },
+    {
+      q: "Pourquoi le rappel actif est-il qualifié d'une des stratégies les mieux validées scientifiquement ?",
+      a: ["Des centaines d'études répliquées dans des contextes variés convergent vers les mêmes conclusions","Son efficacité repose sur seulement quelques études en laboratoire non répliquées","Il est validé uniquement en psychologie cognitive mais pas en sciences de l'éducation","Sa validation est récente et nécessite encore des années de recherche supplémentaires"],
+      correct: 0,
+      explain: "L'effet test est l'un des phénomènes les plus répliqués en psychologie cognitive : des centaines d'études, dans des contextes variés (laboratoire, école, université, disciplines différentes, cultures différentes), convergent vers les mêmes conclusions. Sa robustesse scientifique est exceptionnelle."
+    },
+    {
+      q: "En synthèse, pourquoi le rappel actif est-il qualifié de stratégie d''investissement à fort rendement' ?",
+      a: ["Il coûte du temps et de l'effort mais produit une rétention et un transfert bien supérieurs","Il est rapide et facile à pratiquer, ce qui en fait un excellent investissement","Son rendement élevé vient de sa simplicité — il ne requiert aucun effort particulier","C'est une qualification marketing — ses effets réels sont modestes selon la recherche"],
+      correct: 0,
+      explain: "Le rappel actif demande un investissement réel (effort cognitif, inconfort, temps) — mais produit des retours disproportionnés : rétention à long terme, transfert à de nouveaux contextes, calibration métacognitive, et réduction de l'anxiété d'évaluation. Le ratio effort/bénéfice est parmi les meilleurs disponibles en pédagogie fondée sur les preuves."
+    },
+    {
+      q: "Comment la recherche sur le rappel actif doit-elle être communiquée aux élèves pour maximiser l'adhésion ?",
+      a: ["Expliquer le 'pourquoi' neurologique et montrer les données avant de demander de pratiquer","Imposer la pratique sans explication — les résultats parleront d'eux-mêmes avec le temps","Présenter uniquement les bénéfices sans mentionner l'inconfort inhérent à la stratégie","Laisser les élèves découvrir par eux-mêmes l'efficacité du rappel actif naturellement"],
+      correct: 0,
+      explain: "Expliquer le 'pourquoi' (pourquoi l'inconfort est le signe de l'apprentissage, ce qu'il se passe dans le cerveau) favorise l'adhésion et développe la métacognition. Les élèves qui comprennent le mécanisme sont plus susceptibles d'accepter l'inconfort et de pratiquer de façon autonome et durable."
+    },
+    {
+      q: "Analyser : dans un contexte numérique avec accès permanent à l'information, le rappel actif reste-t-il pertinent ?",
+      a: ["Oui — les structures conceptuelles restent indispensables même si les faits sont externalisés","Non — Google rend le rappel actif obsolète car l'information est toujours disponible","Non — les outils numériques compensent entièrement les limites de la mémoire humaine","Oui, mais uniquement pour des contenus inaccessibles en ligne comme les langues anciennes"],
+      correct: 0,
+      explain: "Dans un monde à information accessible, mémoriser chaque fait devient moins crucial — mais les structures conceptuelles (comprendre comment les faits s'articulent) restent indispensables pour naviguer, évaluer et raisonner. Le rappel actif de ces structures conceptuelles est plus pertinent que jamais — sans elles, on ne sait même pas quoi chercher ni comment interpréter ce qu'on trouve."
+    }
+  ]
+};
+
+const LEVELS = ['decouvre', 'alaise', 'expert'];
+const LEVEL_NAMES = { decouvre: 'Je découvre', alaise: 'Je suis à l\'aise', expert: 'J\'approche de l\'expertise' };
+const LEVEL_ICONS = { decouvre: '🌱', alaise: '⚡', expert: '🔬' };
+const LEVEL_DESCS = { decouvre: 'Repérage & compréhension explicite', alaise: 'Liens, nuances & distinctions fines', expert: 'Analyse, transfert & cas complexes' };
+const PASS_SCORE = 80;
+const Q_PER_SESSION = 10;
+
+let state = { unlockedLevel: 0, completedLevels: [], currentLevel: 0, sessionQuestions: [], currentQ: 0, score: 0, errors: [], answered: false };
+
+function loadState() {
+  try { const s = localStorage.getItem('rappel_actif_quiz_state'); if (s) { const sv = JSON.parse(s); state.unlockedLevel = sv.unlockedLevel || 0; state.completedLevels = sv.completedLevels || []; } } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem('rappel_actif_quiz_state', JSON.stringify({ unlockedLevel: state.unlockedLevel, completedLevels: state.completedLevels })); } catch(e) {}
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function renderHome() {
+  const grid = document.getElementById('levels-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((level, i) => {
+    const unlocked = i <= state.unlockedLevel;
+    const completed = state.completedLevels.includes(level);
+    grid.innerHTML += `<div class="level-card ${completed ? 'completed' : unlocked ? 'unlocked' : 'locked'}">
+      ${completed ? '<div class="lc-check">✓</div>' : ''}
+      <div class="lc-icon">${LEVEL_ICONS[level]}</div>
+      <div class="lc-name">${LEVEL_NAMES[level]}</div>
+      <div class="lc-desc">${LEVEL_DESCS[level]}</div>
+    </div>`;
+  });
+  const allDone = state.completedLevels.length === 3;
+  const btn = document.getElementById('btn-start');
+  if (allDone) { btn.textContent = '⚡ Voir mon badge'; btn.onclick = () => showScreen('badge'); }
+  else { btn.textContent = `Commencer — ${LEVEL_NAMES[LEVELS[state.unlockedLevel]]} →`; btn.onclick = startCurrentLevel; }
+}
+function startCurrentLevel() {
+  const level = LEVELS[state.unlockedLevel];
+  const pool = shuffle(QUESTIONS[level]).slice(0, Q_PER_SESSION);
+  state.sessionQuestions = pool.map(q => {
+    const answers = q.a.map((text, i) => ({ text, originalIndex: i }));
+    const shuffled = shuffle(answers);
+    const newCorrect = shuffled.findIndex(a => a.originalIndex === q.correct);
+    return { q: q.q, a: shuffled.map(a => a.text), correct: newCorrect, explain: q.explain };
+  });
+  state.currentQ = 0; state.score = 0; state.errors = [];
+  state.currentLevel = state.unlockedLevel;
+  showScreen('quiz'); renderQuestion();
+}
+function renderQuestion() {
+  const q = state.sessionQuestions[state.currentQ];
+  const tagClasses = ['tag-decouvre', 'tag-alaise', 'tag-expert'];
+  document.getElementById('quiz-level-tag').textContent = LEVEL_NAMES[LEVELS[state.currentLevel]];
+  document.getElementById('quiz-level-tag').className = 'quiz-level-tag ' + tagClasses[state.currentLevel];
+  document.getElementById('quiz-progress').textContent = `Q ${state.currentQ + 1}/${Q_PER_SESSION}`;
+  document.getElementById('quiz-score-mini').textContent = `Score : ${state.score}%`;
+  document.getElementById('q-num').textContent = `Question ${state.currentQ + 1}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('progress-fill').style.width = (state.currentQ / Q_PER_SESSION * 100) + '%';
+  const list = document.getElementById('answers-list');
+  const letters = ['A','B','C','D'];
+  list.innerHTML = '';
+  q.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="ans-letter">${letters[i]}</span><span>${ans}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    list.appendChild(btn);
+  });
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+  state.answered = false;
+}
+function selectAnswer(idx) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = state.sessionQuestions[state.currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  const isCorrect = idx === q.correct;
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === idx && !isCorrect) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box ' + (isCorrect ? 'correct' : 'wrong');
+  fb.style.display = 'block';
+  document.getElementById('fb-verdict').textContent = isCorrect ? '✓ Bonne réponse !' : '✗ Pas tout à fait…';
+  document.getElementById('fb-explain').textContent = q.explain;
+  if (isCorrect) { state.score += 10; document.getElementById('quiz-score-mini').textContent = `Score : ${state.score}%`; }
+  else { state.errors.push({ question: q.q, chosen: q.a[idx], correct: q.a[q.correct], explain: q.explain }); }
+  document.getElementById('btn-next').style.display = 'block';
+  document.getElementById('btn-next').textContent = state.currentQ < Q_PER_SESSION - 1 ? 'Question suivante →' : 'Voir mes résultats →';
+}
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ < Q_PER_SESSION) renderQuestion();
+  else showResults();
+}
+function showResults() {
+  showScreen('results');
+  const pass = state.score >= PASS_SCORE;
+  const hero = document.getElementById('result-hero');
+  hero.className = 'result-hero ' + (pass ? 'pass' : 'fail');
+  document.getElementById('result-prog-bar').style.background = pass ? 'rgba(255,255,255,0.25)' : 'var(--gray-200)';
+  document.getElementById('result-prog-fill').style.background = pass ? 'rgba(255,255,255,0.85)' : 'var(--blue)';
+  document.getElementById('result-emoji').textContent = pass ? '🎉' : '💡';
+  document.getElementById('result-score').textContent = state.score + '%';
+  setTimeout(() => { document.getElementById('result-prog-fill').style.width = state.score + '%'; }, 100);
+  document.getElementById('result-verdict').textContent = pass ? 'Niveau validé — bien joué !' : `Il faut 80% pour passer. Encore ${80 - state.score}% manquants !`;
+  const errSec = document.getElementById('errors-section');
+  if (state.errors.length > 0) {
+    errSec.style.display = 'block';
+    document.getElementById('errors-list').innerHTML = state.errors.map(e => `<div class="error-item">
+      <div class="error-q">❓ ${e.question}</div>
+      <div class="error-yours">✗ Votre réponse : ${e.chosen}</div>
+      <div class="error-correct">✓ Bonne réponse : ${e.correct}</div>
+      <div class="error-explain">💡 ${e.explain}</div>
+    </div>`).join('');
+  } else { errSec.style.display = 'none'; }
+  const btnNext = document.getElementById('btn-next-level');
+  if (pass) {
+    const levelKey = LEVELS[state.currentLevel];
+    if (!state.completedLevels.includes(levelKey)) state.completedLevels.push(levelKey);
+    const nextIdx = state.currentLevel + 1;
+    if (nextIdx < LEVELS.length) state.unlockedLevel = Math.max(state.unlockedLevel, nextIdx);
+    saveState();
+    btnNext.textContent = state.completedLevels.length === 3 ? '⚡ Récupérer mon badge →' : `Niveau suivant : ${LEVEL_NAMES[LEVELS[nextIdx]]} →`;
+    btnNext.style.display = 'block';
+  } else { btnNext.style.display = 'none'; }
+}
+function nextLevelOrBadge() {
+  if (state.completedLevels.length === 3) showScreen('badge');
+  else { state.unlockedLevel = Math.min(state.currentLevel + 1, LEVELS.length - 1); showScreen('home'); renderHome(); }
+}
+function retryLevel() { showScreen('home'); renderHome(); }
+function resetAll() { state.unlockedLevel = 0; state.completedLevels = []; saveState(); showScreen('home'); renderHome(); }
+function confirmReset() {
+  if (confirm('Effacer tous les scores et recommencer depuis zéro ?')) {
+    localStorage.removeItem('rappel_actif_quiz_state');
+    state.unlockedLevel = 0; state.completedLevels = [];
+    showScreen('home'); renderHome();
+  }
+}
+
+loadState(); renderHome(); showScreen('home');
+</script>
+</body>
+</html>
